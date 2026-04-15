@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Géométrie dans l'Espace - VR Box</title>
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0a1a; font-family: Arial, sans-serif; color: white; overflow: hidden; }
+
+    #menu {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse at center, #1a1040 0%, #0a0a1a 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 9999; overflow-y: auto; padding: 20px 0;
+    }
+    #menu h1 { font-size: 22px; font-weight: bold; margin-bottom: 4px; color: #c8b8ff; text-align: center; }
+    #menu .subtitle { font-size: 13px; color: #8080b0; margin-bottom: 4px; text-align: center; }
+    #menu .ar-title { font-size: 16px; color: #a090d0; margin-bottom: 22px; direction: rtl; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 92%; max-width: 480px; margin-bottom: 20px; }
+    .btn {
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      border-radius: 12px; padding: 14px 8px;
+      cursor: pointer; text-align: center; color: white;
+      transition: all 0.2s; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.95); background: rgba(255,255,255,0.14); }
+    .btn .icon { font-size: 28px; margin-bottom: 6px; }
+    .btn .fr { font-size: 11px; font-weight: bold; line-height: 1.3; }
+    .btn .ar { font-size: 10px; color: #9090c0; margin-top: 3px; direction: rtl; }
+    .btn.cube-btn  { border-color: rgba(112,96,220,0.5); }
+    .btn.pyr-btn   { border-color: rgba(220,100,50,0.5); }
+    .btn.box-btn   { border-color: rgba(30,150,110,0.5); }
+    .btn.cone-btn  { border-color: rgba(190,50,120,0.5); }
+    .btn.sph-btn   { border-color: rgba(30,150,220,0.5); }
+    .btn.prism-btn { border-color: rgba(200,160,30,0.5); }
+    .btn.tri-btn   { border-color: rgba(140,40,200,0.5); }
+    .hint { font-size: 11px; color: #505070; text-align: center; padding: 0 16px; }
+
+    #vr-scene { display: none; width: 100%; height: 100vh; }
+
+    .back-btn {
+      position: fixed; top: 12px; left: 12px; z-index: 9999;
+      background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.2);
+      color: white; padding: 9px 16px; border-radius: 9px;
+      cursor: pointer; font-size: 14px; display: none;
+    }
+    .solid-name-badge {
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 9999;
+      background: rgba(30,20,80,0.85); border: 1px solid rgba(150,120,255,0.3);
+      color: #c8b8ff; padding: 7px 18px; border-radius: 20px;
+      font-size: 13px; font-weight: bold; display: none; white-space: nowrap;
+    }
+    .info-panel {
+      position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 9999;
+      background: rgba(0,0,0,0.82); border: 1px solid rgba(255,255,255,0.1);
+      padding: 12px 16px; border-radius: 12px; display: none;
+    }
+    .info-panel .fr-desc { font-size: 12px; color: #b0b0d0; line-height: 1.5; }
+    .info-panel .ar-desc { font-size: 12px; color: #a090c0; direction: rtl; margin-top: 4px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+<!-- MENU PRINCIPAL -->
+<div id="menu">
+  <h1>🔷 Géométrie dans l'Espace</h1>
+  <div class="subtitle">Explorez les solides en réalité virtuelle</div>
+  <div class="ar-title">استكشف الأجسام الهندسية في الفضاء</div>
+
+  <div class="grid">
+    <div class="btn cube-btn"  onclick="loadSolid('cube')">
+      <div class="icon">⬜</div>
+      <div class="fr">Cube</div>
+      <div class="ar">المكعب</div>
+    </div>
+    <div class="btn pyr-btn"  onclick="loadSolid('pyramid')">
+      <div class="icon">🔺</div>
+      <div class="fr">Pyramide carrée</div>
+      <div class="ar">الهرم المربع</div>
+    </div>
+    <div class="btn box-btn"  onclick="loadSolid('box')">
+      <div class="icon">📦</div>
+      <div class="fr">Parallélépipède</div>
+      <div class="ar">متوازي المستطيلات</div>
+    </div>
+    <div class="btn cone-btn" onclick="loadSolid('cone')">
+      <div class="icon">🔔</div>
+      <div class="fr">Cône</div>
+      <div class="ar">المخروط</div>
+    </div>
+    <div class="btn sph-btn"  onclick="loadSolid('sphere')">
+      <div class="icon">🌐</div>
+      <div class="fr">Sphère</div>
+      <div class="ar">الكرة</div>
+    </div>
+    <div class="btn prism-btn" onclick="loadSolid('prism')">
+      <div class="icon">🔷</div>
+      <div class="fr">Prisme triangulaire</div>
+      <div class="ar">المنشور المثلثي</div>
+    </div>
+    <div class="btn tri-btn"  onclick="loadSolid('tripyr')">
+      <div class="icon">🔻</div>
+      <div class="fr">Pyramide triangulaire</div>
+      <div class="ar">الهرم المثلثي</div>
+    </div>
+  </div>
+  <div class="hint">📱 Compatible VR Box · Glissez pour tourner · الرأس لاستكشاف الأوجه</div>
+</div>
+
+<!-- UI SUPERPOSÉE -->
+<button class="back-btn" id="backBtn" onclick="showMenu()">← Retour</button>
+<div class="solid-name-badge" id="solidBadge"></div>
+<div class="info-panel" id="infoPanel">
+  <div class="fr-desc" id="infoDesc"></div>
+  <div class="ar-desc" id="infoDescAr"></div>
+</div>
+
+<!-- SCÈNE A-FRAME -->
+<div id="vr-scene">
+  <a-scene id="scene" vr-mode-ui="enabled: true" embedded style="width:100%;height:100vh;">
+
+    <!-- Ciel étoilé -->
+    <a-sky color="#05050f"></a-sky>
+
+    <!-- Lumières -->
+    <a-light type="ambient"    color="#202040" intensity="1.5"></a-light>
+    <a-light type="directional" position="3 5 2"  color="#ffffff" intensity="1.2"></a-light>
+    <a-light type="point"       position="-4 3 -2" color="#6040ff" intensity="0.9"></a-light>
+    <a-light type="point"       position="4 2 2"   color="#ff4080" intensity="0.5"></a-light>
+
+    <!--
+      CORRECTION VR BOX :
+      La caméra est à la position (0, 1.6, 0) — hauteur œil standard.
+      Le solide est placé devant à z=-4, centré sur l'axe X=0.
+      Ainsi en mode cardboard stéréo, les deux yeux convergent
+      exactement vers le centre de l'objet.
+    -->
+    <a-entity id="rig" position="0 1.6 0">
+      <a-camera
+        look-controls="pointerLockEnabled: false; magicWindowTrackingEnabled: true"
+        wasd-controls="enabled: false"
+        fov="80">
+        <!-- Réticule cardboard -->
+        <a-entity
+          cursor="fuse: true; fuseTimeout: 1800"
+          position="0 0 -1.5"
+          geometry="primitive: ring; radiusInner: 0.018; radiusOuter: 0.026"
+          material="color: #ffffff; shader: flat; opacity: 0.8">
+          <a-animation attribute="scale" from="1 1 1" to="0.6 0.6 0.6"
+            dur="1800" begin="fusing" fill="backwards"></a-animation>
+        </a-entity>
+      </a-camera>
+    </a-entity>
+
+    <!-- Solide — positionné à z=-4 devant la caméra, centré X=0 Y=1.6 -->
+    <a-entity id="solid-container" position="0 1.6 -4"
+      animation="property: rotation; to: 0 360 0; loop: true; dur: 14000; easing: linear">
+    </a-entity>
+
+    <!-- Étiquettes flottantes -->
+    <a-entity id="labels"></a-entity>
+
+    <!-- Sol décoratif grille -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="40" height="40" color="#080818" opacity="1"></a-plane>
+    <a-entity id="floorGrid">
+      <!-- lignes grille -->
+    </a-entity>
+
+  </a-scene>
+</div>
+
+<script>
+/* ===== DONNÉES DES SOLIDES ===== */
+const SOLIDS = {
+  cube: {
+    titleFr: "Cube — المكعب",
+    descFr:  "6 faces carrées · 8 sommets · 12 arêtes · Toutes arêtes égales",
+    descAr:  "٦ وجوه مربعة · ٨ رؤوس · ١٢ حرفاً · جميع الأضلاع متساوية",
+    color: "#7060dd", wire: "#c0b0ff", buildFn: buildCube
+  },
+  pyramid: {
+    titleFr: "Pyramide à base carrée — الهرم المربع",
+    descFr:  "1 base carrée · 4 faces triangulaires · 5 sommets · 8 arêtes",
+    descAr:  "قاعدة مربعة · ٤ وجوه مثلثية · ٥ رؤوس · ٨ أحرف",
+    color: "#e06030", wire: "#ffb080", buildFn: buildPyramid
+  },
+  box: {
+    titleFr: "Parallélépipède rectangle — متوازي المستطيلات",
+    descFr:  "6 faces rectangulaires · 8 sommets · 12 arêtes",
+    descAr:  "٦ وجوه مستطيلة · ٨ رؤوس · ١٢ حرفاً · تعميم للمكعب",
+    color: "#209070", wire: "#60ffcc", buildFn: buildBox
+  },
+  cone: {
+    titleFr: "Cône de révolution — مخروط الدوران",
+    descFr:  "1 base circulaire · 1 face latérale courbe · 1 apex · Généré par rotation d'un △",
+    descAr:  "قاعدة دائرية · وجه جانبي · رأس · ينتج من دوران مثلث قائم",
+    color: "#c04080", wire: "#ff90cc", buildFn: buildCone
+  },
+  sphere: {
+    titleFr: "Sphère — الكرة",
+    descFr:  "1 seule surface courbe · Aucun sommet · Aucune arête · Tous les points équidistants du centre",
+    descAr:  "سطح منحنٍ واحد · لا رؤوس · لا أحرف · جميع النقاط على نفس البُعد من المركز",
+    color: "#1890cc", wire: "#80d0ff", buildFn: buildSphere
+  },
+  prism: {
+    titleFr: "Prisme triangulaire — المنشور المثلثي",
+    descFr:  "2 bases triangulaires · 3 faces rectangulaires · 6 sommets · 9 arêtes",
+    descAr:  "قاعدتان مثلثيتان · ٣ وجوه مستطيلة · ٦ رؤوس · ٩ أحرف",
+    color: "#c8a020", wire: "#ffe060", buildFn: buildPrism
+  },
+  tripyr: {
+    titleFr: "Pyramide triangulaire (Tétraèdre) — الهرم المثلثي",
+    descFr:  "4 faces triangulaires · 4 sommets · 6 arêtes · Cas particulier: tétraèdre régulier",
+    descAr:  "٤ وجوه مثلثية · ٤ رؤوس · ٦ أحرف · حالة خاصة: الرباعي الأوجه المنتظم",
+    color: "#8828cc", wire: "#d090ff", buildFn: buildTriPyramid
+  }
+};
+
+/* ===== UTILITAIRES ===== */
+function clearAll() {
+  ['solid-container','labels'].forEach(id => {
+    const el = document.getElementById(id);
+    while(el.firstChild) el.removeChild(el.firstChild);
+  });
+}
+
+function makeLabel(fr, ar, x, y, z) {
+  const wrap = document.createElement('a-entity');
+  // position relative au solide = position absolue = container pos + offset
+  // Les étiquettes sont dans #labels qui est à la racine de la scène
+  // On doit donc ajouter l'offset du container (0,1.6,-4)
+  wrap.setAttribute('position', `${x} ${1.6+y} ${-4+z}`);
+  wrap.setAttribute('look-at', '[camera]');
+
+  const bg = document.createElement('a-plane');
+  bg.setAttribute('width','1.6'); bg.setAttribute('height','0.38');
+  bg.setAttribute('color','#120e30'); bg.setAttribute('opacity','0.88');
+  bg.setAttribute('position','0 0 -0.005');
+  wrap.appendChild(bg);
+
+  const txt = document.createElement('a-text');
+  txt.setAttribute('value', fr + (ar ? '\n'+ar : ''));
+  txt.setAttribute('align','center');
+  txt.setAttribute('color','#ddd8ff');
+  txt.setAttribute('scale','0.42 0.42 0.42');
+  txt.setAttribute('wrap-count','30');
+  wrap.appendChild(txt);
+
+  document.getElementById('labels').appendChild(wrap);
+}
+
+function drawEdge(container, p1, p2, color) {
+  const dx=p2[0]-p1[0], dy=p2[1]-p1[1], dz=p2[2]-p1[2];
+  const len = Math.sqrt(dx*dx+dy*dy+dz*dz);
+  if(len < 0.001) return;
+  const mx=(p1[0]+p2[0])/2, my=(p1[1]+p2[1])/2, mz=(p1[2]+p2[2])/2;
+  const cyl = document.createElement('a-cylinder');
+  cyl.setAttribute('position',`${mx} ${my} ${mz}`);
+  cyl.setAttribute('radius','0.035');
+  cyl.setAttribute('height', len.toFixed(4));
+  cyl.setAttribute('color', color);
+  cyl.setAttribute('segments-height','1');
+  cyl.setAttribute('segments-radial','8');
+  const phi   = Math.atan2(Math.sqrt(dx*dx+dz*dz), dy) * 180/Math.PI;
+  const theta = Math.atan2(dx, dz) * 180/Math.PI;
+  cyl.setAttribute('rotation',`${phi} ${theta} 0`);
+  container.appendChild(cyl);
+}
+
+function addVertex(container, x, y, z, r=0.07) {
+  const s = document.createElement('a-sphere');
+  s.setAttribute('position',`${x} ${y} ${z}`);
+  s.setAttribute('radius', r);
+  s.setAttribute('color','#ffffff');
+  s.setAttribute('segments-height','8');
+  s.setAttribute('segments-width','8');
+  container.appendChild(s);
+}
+
+function addFace(container, color, opacity, ...args) {
+  // args: tag + attributes object
+  const [tag, attrs] = args;
+  const el = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+  el.setAttribute('color', color);
+  el.setAttribute('opacity', opacity);
+  el.setAttribute('side','double');
+  container.appendChild(el);
+  return el;
+}
+
+/* ===== CUBE ===== */
+function buildCube(c, color, wire) {
+  const faceColors = ['#ff4444','#4488ff','#44cc44','#ffcc44','#cc44ff','#44cccc'];
+  const positions  = ['0 0 1.01','0 0 -1.01','1.01 0 0','-1.01 0 0','0 1.01 0','0 -1.01 0'];
+  const rotations  = ['0 0 0','0 0 0','0 90 0','0 90 0','90 0 0','90 0 0'];
+  faceColors.forEach((col,i) => {
+    const f = document.createElement('a-box');
+    f.setAttribute('position', positions[i]);
+    f.setAttribute('rotation', rotations[i]);
+    f.setAttribute('width','2'); f.setAttribute('height','2'); f.setAttribute('depth','0.02');
+    f.setAttribute('color', col); f.setAttribute('opacity','0.3'); f.setAttribute('side','double');
+    c.appendChild(f);
+  });
+  const wf = document.createElement('a-box');
+  wf.setAttribute('width','2'); wf.setAttribute('height','2'); wf.setAttribute('depth','2');
+  wf.setAttribute('color', wire); wf.setAttribute('wireframe','true');
+  c.appendChild(wf);
+  [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]
+    .forEach(([x,y,z]) => addVertex(c,x,y,z));
+  makeLabel("Sommet","رأس",   1.4, 1.4, 1.4);
+  makeLabel("Face","وجه",     0,   0,   1.5);
+  makeLabel("Arête","حرف",    1.5, 0.5, 0);
+}
+
+/* ===== PYRAMIDE CARRÉE ===== */
+function buildPyramid(c, color, wire) {
+  const base = [[-1.3,-1,-1.3],[1.3,-1,-1.3],[1.3,-1,1.3],[-1.3,-1,1.3]];
+  const apex = [0, 2, 0];
+  const allV = [...base, apex];
+  const fp   = document.createElement('a-plane');
+  fp.setAttribute('rotation','-90 0 0'); fp.setAttribute('position','0 -1 0');
+  fp.setAttribute('width','2.6'); fp.setAttribute('height','2.6');
+  fp.setAttribute('color','#cc3333'); fp.setAttribute('opacity','0.28'); fp.setAttribute('side','double');
+  c.appendChild(fp);
+  [[0,1,4],[1,2,4],[2,3,4],[3,0,4]].forEach(([a,b,ap],i) => {
+    drawEdge(c, allV[a], allV[b], wire);
+    drawEdge(c, allV[a], allV[ap], wire);
+  });
+  drawEdge(c, allV[2], allV[3], wire);
+  allV.forEach(([x,y,z]) => addVertex(c,x,y,z));
+  makeLabel("Apex","الرأس",           0,  2.5,  0);
+  makeLabel("Base","القاعدة",         0, -1.5,  0);
+  makeLabel("Face △","وجه مثلثي",    1.8,  0.5, 0);
+}
+
+/* ===== PARALLÉLÉPIPÈDE ===== */
+function buildBox(c, color, wire) {
+  const faceColors = ['#4488ff','#88aaff','#3366cc','#2244aa','#66aaff','#aaccff'];
+  const positions  = ['0 0 1.01','0 0 -1.01','1.51 0 0','-1.51 0 0','0 0.76 0','0 -0.76 0'];
+  const dims = [['3','1.5','0.02'],['3','1.5','0.02'],['0.02','1.5','2'],['0.02','1.5','2'],['3','0.02','2'],['3','0.02','2']];
+  faceColors.forEach((col,i) => {
+    const f = document.createElement('a-box');
+    f.setAttribute('position', positions[i]);
+    f.setAttribute('width', dims[i][0]); f.setAttribute('height', dims[i][1]); f.setAttribute('depth', dims[i][2]);
+    f.setAttribute('color', col); f.setAttribute('opacity','0.25'); f.setAttribute('side','double');
+    c.appendChild(f);
+  });
+  const wf = document.createElement('a-box');
+  wf.setAttribute('width','3'); wf.setAttribute('height','1.5'); wf.setAttribute('depth','2');
+  wf.setAttribute('color', wire); wf.setAttribute('wireframe','true');
+  c.appendChild(wf);
+  [[-1.5,-0.75,-1],[1.5,-0.75,-1],[1.5,0.75,-1],[-1.5,0.75,-1],
+   [-1.5,-0.75,1],[1.5,-0.75,1],[1.5,0.75,1],[-1.5,0.75,1]]
+    .forEach(([x,y,z]) => addVertex(c,x,y,z));
+  makeLabel("Face rect.","وجه مستطيل", 0, 0, 1.5);
+  makeLabel("Longueur","الطول",        0,-1.1, 0);
+  makeLabel("Largeur","العرض",         1.8, 0, 0);
+}
+
+/* ===== CÔNE ===== */
+function buildCone(c, color, wire) {
+  const cone = document.createElement('a-cone');
+  cone.setAttribute('radius-bottom','1.5'); cone.setAttribute('radius-top','0.01'); cone.setAttribute('height','3');
+  cone.setAttribute('color', color); cone.setAttribute('opacity','0.28'); cone.setAttribute('side','double');
+  cone.setAttribute('segments-radial','32');
+  c.appendChild(cone);
+  const wc = document.createElement('a-cone');
+  wc.setAttribute('radius-bottom','1.5'); wc.setAttribute('radius-top','0.01'); wc.setAttribute('height','3');
+  wc.setAttribute('color', wire); wc.setAttribute('wireframe','true'); wc.setAttribute('segments-radial','16');
+  c.appendChild(wc);
+  const circ = document.createElement('a-circle');
+  circ.setAttribute('radius','1.5'); circ.setAttribute('position','0 -1.5 0');
+  circ.setAttribute('rotation','-90 0 0'); circ.setAttribute('color','#ff90cc');
+  circ.setAttribute('opacity','0.38'); circ.setAttribute('side','double');
+  c.appendChild(circ);
+  for(let i=0;i<8;i++) {
+    const a = (i/8)*Math.PI*2;
+    drawEdge(c, [0,1.5,0], [Math.cos(a)*1.5,-1.5,Math.sin(a)*1.5], wire);
+  }
+  addVertex(c, 0, 1.5, 0, 0.08);
+  makeLabel("Apex","الرأس",             0,  2.2,  0);
+  makeLabel("Base circulaire","القاعدة",1.9,-1.5,  0);
+  makeLabel("Génératrice","المولّد",    1.4,  0,   0);
+}
+
+/* ===== SPHÈRE ===== */
+function buildSphere(c, color, wire) {
+  const sph = document.createElement('a-sphere');
+  sph.setAttribute('radius','1.6'); sph.setAttribute('color', color);
+  sph.setAttribute('opacity','0.22'); sph.setAttribute('side','double');
+  sph.setAttribute('segments-height','16'); sph.setAttribute('segments-width','16');
+  c.appendChild(sph);
+  // Wireframe sphère
+  const wf = document.createElement('a-sphere');
+  wf.setAttribute('radius','1.61'); wf.setAttribute('color', wire);
+  wf.setAttribute('wireframe','true');
+  wf.setAttribute('segments-height','10'); wf.setAttribute('segments-width','10');
+  c.appendChild(wf);
+  // Grand cercle équateur
+  const eq = document.createElement('a-torus');
+  eq.setAttribute('radius','1.6'); eq.setAttribute('radius-tubular','0.025');
+  eq.setAttribute('color','#80d0ff'); eq.setAttribute('opacity','0.9');
+  eq.setAttribute('segments-tubular','40');
+  c.appendChild(eq);
+  // Méridien vertical
+  const mer = document.createElement('a-torus');
+  mer.setAttribute('radius','1.6'); mer.setAttribute('radius-tubular','0.025');
+  mer.setAttribute('color','#ff8080'); mer.setAttribute('opacity','0.8');
+  mer.setAttribute('rotation','0 0 90'); mer.setAttribute('segments-tubular','40');
+  c.appendChild(mer);
+  // Centre
+  addVertex(c, 0, 0, 0, 0.09);
+  // Rayon
+  drawEdge(c, [0,0,0], [1.6,0,0], '#ffff60');
+  makeLabel("Centre","المركز",          0,   0.2, 0);
+  makeLabel("Rayon","نصف القطر",        1.1,  0.3, 0);
+  makeLabel("Grand cercle","دائرة عظمى",0,  -1.9, 0);
+}
+
+/* ===== PRISME TRIANGULAIRE ===== */
+function buildPrism(c, color, wire) {
+  const h = 2.4; // hauteur prisme
+  // Bases triangulaires équilatérales (r=1.4)
+  const r = 1.4;
+  const triBase = [
+    [r*Math.cos(Math.PI/2),         -h/2, r*Math.sin(Math.PI/2)],
+    [r*Math.cos(Math.PI/2+2*Math.PI/3), -h/2, r*Math.sin(Math.PI/2+2*Math.PI/3)],
+    [r*Math.cos(Math.PI/2+4*Math.PI/3), -h/2, r*Math.sin(Math.PI/2+4*Math.PI/3)]
+  ];
+  const triTop = triBase.map(([x,y,z]) => [x, h/2, z]);
+  const allV = [...triBase, ...triTop];
+
+  // Arêtes bases
+  [[0,1],[1,2],[2,0],[3,4],[4,5],[5,3]].forEach(([a,b]) => drawEdge(c,allV[a],allV[b],wire));
+  // Arêtes latérales
+  [[0,3],[1,4],[2,5]].forEach(([a,b]) => drawEdge(c,allV[a],allV[b],wire));
+
+  // Faces rectangulaires (semi-transparentes)
+  [[0,1,4,3],[1,2,5,4],[2,0,3,5]].forEach(([a,b,d,e], i) => {
+    const cols = ['#c8a020','#e0b840','#a08010'];
+    const mid = [(allV[a][0]+allV[d][0])/2, 0, (allV[a][2]+allV[d][2])/2];
+    // Approximation: plan entre 2 arêtes latérales
+    const px = (allV[a][0]+allV[b][0]+allV[d][0]+allV[e][0])/4;
+    const pz = (allV[a][2]+allV[b][2]+allV[d][2]+allV[e][2])/4;
+    const angle = Math.atan2(px, pz) * 180/Math.PI;
+    const w = Math.sqrt(
+      Math.pow(allV[b][0]-allV[a][0],2)+Math.pow(allV[b][2]-allV[a][2],2)
+    );
+    const face = document.createElement('a-plane');
+    face.setAttribute('position', `${px} 0 ${pz}`);
+    face.setAttribute('rotation', `0 ${angle} 0`);
+    face.setAttribute('width', w.toFixed(3));
+    face.setAttribute('height', h.toString());
+    face.setAttribute('color', cols[i]);
+    face.setAttribute('opacity','0.25');
+    face.setAttribute('side','double');
+    c.appendChild(face);
+  });
+
+  // Bases triangulaires
+  ['#ffe060','#ffcc30'].forEach((col, i) => {
+    const verts = i===0 ? triBase : triTop;
+    const yPos  = i===0 ? -h/2 : h/2;
+    const tri = document.createElement('a-triangle');
+    tri.setAttribute('vertex-a', `${verts[0][0]} ${yPos} ${verts[0][2]}`);
+    tri.setAttribute('vertex-b', `${verts[1][0]} ${yPos} ${verts[1][2]}`);
+    tri.setAttribute('vertex-c', `${verts[2][0]} ${yPos} ${verts[2][2]}`);
+    tri.setAttribute('color', col); tri.setAttribute('opacity','0.3'); tri.setAttribute('side','double');
+    c.appendChild(tri);
+  });
+
+  allV.forEach(([x,y,z]) => addVertex(c,x,y,z));
+  makeLabel("Base △","القاعدة المثلثية", 0,  1.8, 0);
+  makeLabel("Face rect.","وجه مستطيل",   1.8, 0,   0);
+  makeLabel("Arête lat.","الحرف الجانبي",-1.8, 0,   0);
+}
+
+/* ===== PYRAMIDE TRIANGULAIRE (tétraèdre) ===== */
+function buildTriPyramid(c, color, wire) {
+  // Tétraèdre régulier inscrit dans sphère r=1.5
+  const r = 1.5;
+  // 3 sommets base + apex
+  const verts = [
+    [r*Math.cos(Math.PI/2),         -0.8, r*Math.sin(Math.PI/2)],
+    [r*Math.cos(Math.PI/2+2*Math.PI/3), -0.8, r*Math.sin(Math.PI/2+2*Math.PI/3)],
+    [r*Math.cos(Math.PI/2+4*Math.PI/3), -0.8, r*Math.sin(Math.PI/2+4*Math.PI/3)],
+    [0, 1.8, 0]
+  ];
+
+  // Arêtes
+  [[0,1],[1,2],[2,0],[0,3],[1,3],[2,3]].forEach(([a,b]) => drawEdge(c,verts[a],verts[b],wire));
+
+  // Faces (4 triangles)
+  const faceColors = ['#9040dd','#b060ff','#c080ff','#7020aa'];
+  [[0,1,2],[0,1,3],[1,2,3],[2,0,3]].forEach(([a,b,d], i) => {
+    const tri = document.createElement('a-triangle');
+    tri.setAttribute('vertex-a', verts[a].join(' '));
+    tri.setAttribute('vertex-b', verts[b].join(' '));
+    tri.setAttribute('vertex-c', verts[d].join(' '));
+    tri.setAttribute('color', faceColors[i]);
+    tri.setAttribute('opacity','0.3');
+    tri.setAttribute('side','double');
+    c.appendChild(tri);
+  });
+
+  verts.forEach(([x,y,z]) => addVertex(c,x,y,z));
+  makeLabel("Apex","الرأس",        0,  2.3, 0);
+  makeLabel("Base △","القاعدة",    0, -1.3, 0);
+  makeLabel("4 faces △","٤ وجوه", 1.9, 0.5, 0);
+}
+
+/* ===== CHARGEMENT ===== */
+function loadSolid(key) {
+  const solid = SOLIDS[key];
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('vr-scene').style.display = 'block';
+  document.getElementById('backBtn').style.display = 'block';
+  document.getElementById('infoPanel').style.display = 'block';
+  document.getElementById('solidBadge').style.display = 'block';
+  document.getElementById('solidBadge').textContent = solid.titleFr;
+  document.getElementById('infoDesc').textContent   = solid.descFr;
+  document.getElementById('infoDescAr').textContent = solid.descAr;
+  clearAll();
+  // Réinitialise la rotation
+  const cont = document.getElementById('solid-container');
+  cont.setAttribute('rotation','0 0 0');
+  solid.buildFn(cont, solid.color, solid.wire);
+}
+
+function showMenu() {
+  document.getElementById('menu').style.display = 'flex';
+  document.getElementById('vr-scene').style.display = 'none';
+  document.getElementById('backBtn').style.display = 'none';
+  document.getElementById('infoPanel').style.display = 'none';
+  document.getElementById('solidBadge').style.display = 'none';
+  clearAll();
+}
+</script>
+</body>
+</html>
